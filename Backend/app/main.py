@@ -13,6 +13,8 @@ from app.risk.router import router as risk_router
 from app.alerts.router import router as alerts_router
 from app.explain.router import router as explain_router
 from app.audit.router import router as audit_router
+from app.config.router import router as config_router
+from app.market.router import router as market_router
 from app.websocket.manager import websocket_manager
 from app.streaming.pathway_pipeline import pathway_pipeline
 from db.session import init_db
@@ -90,6 +92,8 @@ app.include_router(risk_router, prefix=settings.API_PREFIX)
 app.include_router(alerts_router, prefix=settings.API_PREFIX)
 app.include_router(explain_router, prefix=settings.API_PREFIX)
 app.include_router(audit_router, prefix=settings.API_PREFIX)
+app.include_router(config_router, prefix=settings.API_PREFIX)
+app.include_router(market_router, prefix=f"{settings.API_PREFIX}/market", tags=["market"])
 
 
 # Root endpoint
@@ -116,37 +120,9 @@ async def health_check():
     }
 
 
-# Configuration endpoint
-@app.get(f"{settings.API_PREFIX}/config")
-async def get_config():
-    """Get current risk configuration"""
-    return {
-        "risk_thresholds": {
-            "high": settings.RISK_HIGH_THRESHOLD,
-            "medium": settings.RISK_MEDIUM_THRESHOLD,
-            "low": settings.RISK_LOW_THRESHOLD
-        },
-        "streaming": {
-            "enabled": True,
-            "buffer_size": settings.STREAM_BUFFER_SIZE
-        }
-    }
-
-
-@app.put(f"{settings.API_PREFIX}/config")
-async def update_config(config: dict):
-    """Update risk configuration (Admin only in production)"""
-    from app.risk.engine import risk_engine
-    
-    if "risk_thresholds" in config:
-        thresholds = config["risk_thresholds"]
-        risk_engine.update_thresholds(
-            high=thresholds.get("high"),
-            medium=thresholds.get("medium"),
-            low=thresholds.get("low")
-        )
-    
-    return {"status": "updated", "config": config}
+# Configuration is now handled by the config router (app/config/router.py)
+# GET  {settings.API_PREFIX}/config - Get current configuration
+# PUT  {settings.API_PREFIX}/config - Update configuration (admin only)
 
 
 # WebSocket endpoint

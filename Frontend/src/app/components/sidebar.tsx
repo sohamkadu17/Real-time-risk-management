@@ -1,4 +1,4 @@
-import { LayoutDashboard, Radio, Gauge, Database, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Radio, Gauge, Database, Info, ChevronLeft, ChevronRight, Home, Settings } from "lucide-react";
 
 interface SidebarProps {
   isDarkMode: boolean;
@@ -9,11 +9,13 @@ interface SidebarProps {
 }
 
 const menuItems = [
+  { id: "landing", label: "Home", icon: Home },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "market-feed", label: "Market Feed", icon: Radio },
   { id: "risk-metrics", label: "Risk Metrics", icon: Gauge },
   { id: "data-source", label: "Data Source", icon: Database },
   { id: "about", label: "About", icon: Info },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar({ isDarkMode, isCollapsed, activeView, onToggleCollapse, onNavigate }: SidebarProps) {

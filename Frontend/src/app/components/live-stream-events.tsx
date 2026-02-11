@@ -1,11 +1,14 @@
 import { Activity, CheckCircle2, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
+import api, { RiskData } from "../../services/api";
 
 interface StreamEvent {
   id: string;
   type: "data" | "compute" | "update";
   message: string;
   timestamp: Date;
+  risk_score?: number;
+  entity_id?: string;
 }
 
 interface LiveStreamEventsProps {
@@ -16,34 +19,60 @@ export function LiveStreamEvents({ isDarkMode }: LiveStreamEventsProps) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
 
   useEffect(() => {
-    const eventMessages = [
-      { type: "data" as const, message: "Market data received from exchange feed" },
-      { type: "compute" as const, message: "Black-76 delta computation completed" },
-      { type: "update" as const, message: "Risk metrics updated in real-time" },
-      { type: "data" as const, message: "Price tick processed: NIFTY50" },
-      { type: "compute" as const, message: "Greeks recalculated for volatility shift" },
-      { type: "update" as const, message: "Dashboard state synchronized" },
-    ];
-
-    const addEvent = () => {
-      const randomMessage = eventMessages[Math.floor(Math.random() * eventMessages.length)];
+    // Listen to real-time risk updates from backend
+    const handleRiskUpdate = (riskData: RiskData) => {
       const newEvent: StreamEvent = {
-        id: Date.now().toString(),
-        type: randomMessage.type,
-        message: randomMessage.message,
+        id: `${riskData.id}-${Date.now()}`,
+        type: "update",
+        message: `Risk assessed for ${riskData.entity_type}:${riskData.entity_id} - Score: ${riskData.risk_score.toFixed(3)}, Level: ${riskData.risk_level}`,
         timestamp: new Date(),
+        risk_score: riskData.risk_score,
+        entity_id: riskData.entity_id,
       };
-
+      
       setEvents(prev => [newEvent, ...prev].slice(0, 10)); // Keep last 10 events
     };
 
-    // Add initial event
-    addEvent();
+    // Add Greeks computation as a simulated event
+    const computeEvent = () => {
+      const computeMessages = [
+        "Black-76 delta computation completed",
+        "Greeks recalculated for volatility shift",
+        "Gamma calculation updated",
+        "Theta decay factor computed"
+      ];
+      
+      const message = computeMessages[Math.floor(Math.random() * computeMessages.length)];
+      const newEvent: StreamEvent = {
+        id: `compute-${Date.now()}`,
+        type: "compute",
+        message,
+        timestamp: new Date(),
+      };
+      
+      setEvents(prev => [newEvent, ...prev].slice(0, 10));
+    };
 
-    // Add new events periodically
-    const interval = setInterval(addEvent, 3000);
+    // Subscribe to WebSocket updates
+    api.on("risk-update", handleRiskUpdate);
 
-    return () => clearInterval(interval);
+    // Simulate Greek computation events periodically
+    const computeInterval = setInterval(computeEvent, 5000);
+
+    // Fetch initial events
+    const fetchInitialEvents = async () => {
+      const risks = await api.getLiveRisks(5);
+      risks.forEach((risk) => {
+        handleRiskUpdate(risk);
+      });
+    };
+
+    fetchInitialEvents();
+
+    return () => {
+      api.off("risk-update", handleRiskUpdate);
+      clearInterval(computeInterval);
+    };
   }, []);
 
   const formatTime = (date: Date) => {

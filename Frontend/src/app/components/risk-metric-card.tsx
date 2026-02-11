@@ -1,22 +1,38 @@
-import { Gauge, Zap } from "lucide-react";
+import { Gauge, Zap, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { InfoTooltip } from "./info-tooltip";
+import api, { RiskData } from "../../services/api";
 
 interface RiskMetricCardProps {
   isDarkMode: boolean;
   onDeltaChange: (delta: number) => void;
+  riskData?: RiskData | null;
 }
 
-export function RiskMetricCard({ isDarkMode, onDeltaChange }: RiskMetricCardProps) {
+export function RiskMetricCard({ isDarkMode, onDeltaChange, riskData }: RiskMetricCardProps) {
   const [delta, setDelta] = useState(0.6523);
+  const [riskScore, setRiskScore] = useState(0.562);
+  const [riskLevel, setRiskLevel] = useState("medium");
 
-  // Simulate real-time delta updates
+  // Update with real risk data when available
   useEffect(() => {
+    if (riskData) {
+      setRiskScore(riskData.risk_score);
+      setRiskLevel(riskData.risk_level);
+      // Use risk score as delta estimation
+      setDelta(riskData.risk_score);
+      onDeltaChange(riskData.risk_score);
+    }
+  }, [riskData, onDeltaChange]);
+
+  // Simulate delta updates when no real data
+  useEffect(() => {
+    if (riskData) return; // Skip simulation if we have real data
+    
     const interval = setInterval(() => {
       setDelta(prev => {
         const change = (Math.random() - 0.5) * 0.05;
         const newValue = prev + change;
-        // Keep delta between 0 and 1
         const newDelta = parseFloat(Math.max(0, Math.min(1, newValue)).toFixed(4));
         onDeltaChange(newDelta);
         return newDelta;
@@ -24,7 +40,37 @@ export function RiskMetricCard({ isDarkMode, onDeltaChange }: RiskMetricCardProp
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [onDeltaChange]);
+  }, [onDeltaChange, riskData]);
+
+  const getRiskColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'critical':
+        return isDarkMode ? 'text-red-400' : 'text-red-600';
+      case 'high':
+        return isDarkMode ? 'text-orange-400' : 'text-orange-600';
+      case 'medium':
+        return isDarkMode ? 'text-yellow-400' : 'text-yellow-600';
+      case 'low':
+        return isDarkMode ? 'text-green-400' : 'text-green-600';
+      default:
+        return isDarkMode ? 'text-gray-400' : 'text-gray-600';
+    }
+  };
+
+  const getRiskBgColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'critical':
+        return isDarkMode ? 'from-red-500/10 to-red-500/5' : 'from-red-50 to-red-50/50';
+      case 'high':
+        return isDarkMode ? 'from-orange-500/10 to-orange-500/5' : 'from-orange-50 to-orange-50/50';
+      case 'medium':
+        return isDarkMode ? 'from-yellow-500/10 to-yellow-500/5' : 'from-yellow-50 to-yellow-50/50';
+      case 'low':
+        return isDarkMode ? 'from-green-500/10 to-green-500/5' : 'from-green-50 to-green-50/50';
+      default:
+        return isDarkMode ? 'from-gray-500/10 to-gray-500/5' : 'from-gray-50 to-gray-50/50';
+    }
+  };
 
   return (
     <div className={`rounded-xl p-6 shadow-lg ${
@@ -33,12 +79,12 @@ export function RiskMetricCard({ isDarkMode, onDeltaChange }: RiskMetricCardProp
       {/* Card Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Gauge className={`size-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+          <TrendingUp className={`size-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
           <h2 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Real-Time Risk Metric
+            Risk Assessment
           </h2>
           <InfoTooltip 
-            content="Delta measures how much an option's price changes relative to a ₹1 change in the underlying asset"
+            content="Real-time risk score based on market conditions and entity features"
             isDarkMode={isDarkMode}
           />
         </div>
@@ -50,33 +96,30 @@ export function RiskMetricCard({ isDarkMode, onDeltaChange }: RiskMetricCardProp
         </div>
       </div>
 
-      {/* Delta Label */}
+      {/* Risk Score */}
       <div className="flex items-center gap-2 mb-4">
         <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Option Delta (Black-76 Model)
+          Current Risk Score
         </p>
         <div className={`size-1.5 rounded-full animate-pulse ${
           isDarkMode ? 'bg-purple-400' : 'bg-purple-500'
         }`}></div>
       </div>
 
-      {/* Delta Value - Main Highlight */}
-      <div className={`p-8 rounded-lg mb-6 text-center ${
-        isDarkMode 
-          ? 'bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20' 
-          : 'bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200'
+      {/* Risk Score Value - Main Highlight */}
+      <div className={`p-8 rounded-lg mb-6 text-center bg-gradient-to-br ${getRiskBgColor(riskLevel)} border ${
+        isDarkMode ? 'border-gray-700/50' : 'border-gray-200'
       }`}>
         <div className="flex items-center justify-center gap-3">
           <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Δ =
+            Score:
           </span>
-          <span className={`text-5xl font-bold tabular-nums ${
-            isDarkMode 
-              ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400' 
-              : 'text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600'
-          }`}>
-            {delta.toFixed(4)}
+          <span className={`text-5xl font-bold tabular-nums ${getRiskColor(riskLevel)}`}>
+            {riskScore.toFixed(3)}
           </span>
+        </div>
+        <div className={`mt-3 text-sm font-semibold ${getRiskColor(riskLevel)}`}>
+          Level: <span className="uppercase">{riskLevel}</span>
         </div>
       </div>
 
@@ -90,10 +133,10 @@ export function RiskMetricCard({ isDarkMode, onDeltaChange }: RiskMetricCardProp
           }`}></div>
           <div>
             <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Updated instantly from streaming data
+              {riskData ? 'Updated from backend' : 'Simulated data'}
             </p>
             <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Real-time computation using Black-76 pricing model for options on futures
+              {riskData ? `Entity: ${riskData.entity_type}:${riskData.entity_id}` : 'Streaming risk assessment engine'}
             </p>
           </div>
         </div>

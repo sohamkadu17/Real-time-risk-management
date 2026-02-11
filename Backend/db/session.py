@@ -41,5 +41,6 @@ def init_db():
     from app.risk.models import Risk
     from app.alerts.models import Alert
     from app.audit.models import AuditLog
+    from app.config.models import SystemConfiguration
     
     Base.metadata.create_all(bind=engine)
