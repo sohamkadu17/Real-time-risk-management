@@ -1,4 +1,4 @@
-import { Zap, TrendingUp, Radio, Shield, Gauge, Clock, Building2, Activity, Eye, BarChart3, Users, Code, Award, Heart, Github, Linkedin, Mail } from "lucide-react";
+import { Zap, TrendingUp, Radio, Shield, Gauge, Clock, Building2, Activity, Eye, BarChart3, Users, Award, Github, Linkedin, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getMarketStatus, MarketStatus } from "../../services/market";
 
@@ -95,25 +95,10 @@ export function AboutScreen({ isDarkMode }: AboutScreenProps) {
     { name: "Market Data Sources", items: ["NSE Live Feed", "BSE Market Data", "Multi-Asset Support"], color: "text-purple-500" },
   ];
 
-  const techStack = [
-    { category: "Frontend", technologies: ["React 18", "TypeScript", "Tailwind CSS", "Vite", "Lucide Icons"], icon: "🎨" },
-    { category: "Backend", technologies: ["FastAPI", "Python 3.11", "WebSocket", "Pydantic", "SQLAlchemy"], icon: "⚡" },
-    { category: "Real-time", technologies: ["Apache Kafka", "WebSocket", "Pathway", "Redis Cache"], icon: "🔄" },
-    { category: "Analytics", technologies: ["NumPy", "Pandas", "QuantLib", "Black-Scholes", "Greeks"], icon: "📊" },
-    { category: "Infrastructure", technologies: ["Docker", "Docker Compose", "RESTful APIs"], icon: "🏗️" }
-  ];
-
-  const projectStats = [
-    { label: "Development Time", value: "48 Hours", icon: "⏱️" },
-    { label: "Code Lines", value: "5,000+", icon: "💻" },
-    { label: "Components", value: "25+", icon: "⚙️" },
-    { label: "API Endpoints", value: "15+", icon: "🔌" }
-  ];
-
   const teamMembers = [
     {
       name: "Risk Analytics Team",
-      role: "Full-Stack Development",
+      role: "Full-Stack Development", 
       description: "Passionate developers building the future of financial risk management",
       skills: ["React", "Python", "FastAPI", "Risk Management"]
     }
@@ -283,7 +268,7 @@ export function AboutScreen({ isDarkMode }: AboutScreenProps) {
         </div>
       </div>
 
-      {/* Hackathon & Project Info */}
+      {/* Project Mission */}
       <div className={`rounded-xl p-6 mb-8 border ${
         isDarkMode 
           ? 'bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border-indigo-800/30' 
@@ -292,14 +277,14 @@ export function AboutScreen({ isDarkMode }: AboutScreenProps) {
         <div className="flex items-center gap-3 mb-6">
           <Award className={`size-7 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
           <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Hackathon 2026 Project
+            About RiskGuard
           </h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
             <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-              🏆 Project Mission
+              🏆 Our Mission
             </h3>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Democratizing institutional-grade risk management tools for retail investors in India. 
@@ -309,7 +294,7 @@ export function AboutScreen({ isDarkMode }: AboutScreenProps) {
           
           <div>
             <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-              🎯 Innovation Focus
+              🎯 Technology Focus
             </h3>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Real-time risk analytics with sub-second latency, AI-powered insights, 
@@ -317,92 +302,8 @@ export function AboutScreen({ isDarkMode }: AboutScreenProps) {
             </p>
           </div>
         </div>
-
-        {/* Project Statistics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {projectStats.map((stat, index) => (
-            <div key={index} className={`text-center p-4 rounded-lg ${
-              isDarkMode ? 'bg-gray-800/50' : 'bg-white/70'
-            }`}>
-              <div className="text-2xl mb-1">{stat.icon}</div>
-              <div className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {stat.value}
-              </div>
-              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/70'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <Heart className={`size-4 ${isDarkMode ? 'text-red-400' : 'text-red-500'}`} />
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Built with passion for financial inclusion
-            </span>
-          </div>
-          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Every feature designed to protect and empower retail investors in the Indian market.
-          </p>
-        </div>
       </div>
 
-      {/* Technical Stack */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-6">
-          <Code className={`size-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-          <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Technical Architecture
-          </h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {techStack.map((stack, index) => (
-            <div key={index} className={`p-5 rounded-xl border transition-all hover:shadow-lg animate-fade-in-scale ${
-              isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-gray-600' : 'bg-white border-gray-200 hover:border-gray-300'
-            }`} style={{ animationDelay: `${index * 100}ms` }}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xl">{stack.icon}</span>
-                <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {stack.category}
-                </h3>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {stack.technologies.map((tech, techIndex) => (
-                  <span key={techIndex} className={`px-2 py-1 text-xs rounded-full ${
-                    isDarkMode 
-                      ? 'bg-gray-700 text-gray-300' 
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {technicalSpecs.map((spec, index) => (
-            <div key={index} className={`p-4 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/70 border-gray-200'
-            }`}>
-              <h4 className={`font-medium mb-2 ${spec.color || (isDarkMode ? 'text-white' : 'text-gray-900')}`}>
-                {spec.name}
-              </h4>
-              <ul className="space-y-1">
-                {spec.items.map((item, itemIndex) => (
-                  <li key={itemIndex} className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    • {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Team Section */}
       <div className="mb-8">

@@ -25,15 +25,16 @@ export function TopNav({ isDarkMode, onThemeToggle }: TopNavProps) {
             </div>
           </div>
 
-          {/* Right: Live Streaming Indicator and Theme Toggle */}
+          {/* Right: Live Streaming Badge and Theme Toggle */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+            {/* Live Stream Status Badge */}
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full glass ${isDarkMode ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200'} border`}>
               <div className="relative">
-                <div className="size-2 bg-green-500 rounded-full animate-pulse"></div>
-                <div className="absolute inset-0 size-2 bg-green-500 rounded-full animate-ping"></div>
+                <div className="size-2 bg-green-500 rounded-full"></div>
+                <div className="absolute inset-0 size-2 bg-green-500 rounded-full animate-ping opacity-75"></div>
               </div>
-              <span className={`font-medium text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                Live Streaming
+              <span className={`font-medium text-xs ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
+                Live Stream
               </span>
             </div>
             

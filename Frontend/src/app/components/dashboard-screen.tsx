@@ -63,19 +63,26 @@ export function DashboardScreen({
             <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Risk<span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">Guard</span> Dashboard
             </h1>
-            <div className="flex items-center gap-4 mt-1">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 mt-1">
+              {/* System Status Badge */}
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full glass ${isConnected 
+                ? (isDarkMode ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200') 
+                : (isDarkMode ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200')
+              } border`}>
                 <div className="relative">
-                  <div className={`size-2 rounded-full animate-pulse ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <div className={`absolute inset-0 size-2 rounded-full ${isConnected ? 'animate-ping bg-green-500' : ''}`}></div>
+                  <div className={`size-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <div className={`absolute inset-0 size-2 rounded-full ${isConnected ? 'animate-ping bg-green-500' : ''} opacity-75`}></div>
                 </div>
-                <span className={`text-sm font-medium ${isConnected ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
-                  {isConnected ? 'Backend Connected' : 'Connecting...'}
+                <span className={`text-xs font-medium ${isConnected ? (isDarkMode ? 'text-green-400' : 'text-green-700') : (isDarkMode ? 'text-red-400' : 'text-red-700')}`}>
+                  {isConnected ? 'Connected' : 'Connecting...'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {dataMode === 'live' ? 'Live Streaming' : 'Simulated Mode'}
+              
+              {/* Data Mode Badge */}
+              <div className={`flex items-center gap-2 px-3 py-1 rounded-full glass ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'} border`}>
+                <div className={`size-2 rounded-full ${dataMode === 'live' ? 'bg-blue-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                <span className={`text-xs font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
+                  {dataMode === 'live' ? 'Live Stream' : 'Demo Mode'}
                 </span>
               </div>
             </div>
