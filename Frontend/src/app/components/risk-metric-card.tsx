@@ -128,18 +128,23 @@ export function RiskMetricCard({ isDarkMode, onDeltaChange, riskData }: RiskMetr
         isDarkMode ? 'bg-gray-900/50' : 'bg-gray-50'
       }`}>
         <div className="flex items-start gap-2">
-          <div className={`mt-0.5 size-1.5 rounded-full ${
-            isDarkMode ? 'bg-green-400' : 'bg-green-500'
-          }`}></div>
-          <div>
-            <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              {riskData ? 'Updated from backend' : 'Simulated data'}
-            </p>
-            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {riskData ? `Entity: ${riskData.entity_type}:${riskData.entity_id}` : 'Streaming risk assessment engine'}
-            </p>
+          <div className={`flex items-center gap-2 px-2 py-1 rounded-full glass ${riskData 
+            ? (isDarkMode ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200') 
+            : (isDarkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200')
+          } border`}>
+            <div className={`size-1.5 rounded-full ${riskData ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+            <span className={`text-xs font-medium ${riskData ? (isDarkMode ? 'text-green-400' : 'text-green-700') : (isDarkMode ? 'text-blue-400' : 'text-blue-700')}`}>
+              {riskData ? 'Live Data' : 'Demo'}
+            </span>
           </div>
         </div>
+        {riskData && (
+          <div className="mt-2">
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Entity: {riskData.entity_type}:{riskData.entity_id}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Additional Context */}

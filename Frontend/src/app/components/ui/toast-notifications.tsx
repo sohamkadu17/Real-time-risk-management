@@ -55,27 +55,29 @@ function ToastNotification({ toast, onClose, isDarkMode }: ToastNotificationProp
   };
 
   return (
-    <div className={`flex items-start gap-3 p-4 rounded-lg border backdrop-blur-lg animate-slide-in-right ${
+    <div className={`flex items-start gap-4 p-6 rounded-xl border-2 animate-slide-in-right backdrop-blur-sm ${
       isDarkMode 
-        ? `bg-gray-800/90 ${getBorderColor()} text-white` 
-        : `bg-white/90 ${getBorderColor()} text-gray-900`
-    }`}>
+        ? `bg-gray-900 border-gray-600 text-white shadow-2xl shadow-black/50` 
+        : `bg-white border-gray-300 text-gray-900 shadow-2xl shadow-black/25`
+    }`} style={{ zIndex: 9999 }}>
       {getIcon()}
       <div className="flex-1 min-w-0">
-        <p className="font-medium">{toast.title}</p>
+        <p className="font-black text-xl tracking-wide">{toast.title}</p>
         {toast.message && (
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`text-base font-bold mt-1 ${
+            isDarkMode ? 'text-gray-200' : 'text-gray-700'
+          }`}>
             {toast.message}
           </p>
         )}
       </div>
       <button
         onClick={() => onClose(toast.id)}
-        className={`p-1 rounded hover:bg-opacity-20 transition-colors ${
-          isDarkMode ? 'hover:bg-white' : 'hover:bg-gray-900'
+        className={`p-2 rounded-lg hover:bg-opacity-20 transition-colors ${
+          isDarkMode ? 'hover:bg-white text-gray-300 hover:text-gray-900' : 'hover:bg-gray-900 text-gray-600 hover:text-white'
         }`}
       >
-        <X className="size-4" />
+        <X className="size-5 font-bold" />
       </button>
     </div>
   );
@@ -111,7 +113,7 @@ export function ToastManager({ isDarkMode }: ToastManagerProps) {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-3 max-w-sm w-full">
+    <div className="fixed top-6 right-6 space-y-4 max-w-md w-full" style={{ zIndex: 99999 }}>
       {currentToasts.map((toast) => (
         <ToastNotification
           key={toast.id}

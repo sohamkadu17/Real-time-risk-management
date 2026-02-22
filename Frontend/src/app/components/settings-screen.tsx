@@ -6,8 +6,6 @@ import {
   Bell, 
   Database, 
   Monitor,
-  Download,
-  Upload,
   RotateCcw,
   Check,
   X
@@ -20,10 +18,8 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ isDarkMode }: SettingsScreenProps) {
-  const { settings, updateSetting, updateNestedSetting, resetSettings, exportSettings, importSettings } = useSettings();
+  const { settings, updateSetting, updateNestedSetting, resetSettings } = useSettings();
   const [activeTab, setActiveTab] = useState('appearance');
-  const [importText, setImportText] = useState('');
-  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const tabs = [
     { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -32,28 +28,6 @@ export function SettingsScreen({ isDarkMode }: SettingsScreenProps) {
     { id: 'alerts', label: 'Alerts', icon: Bell },
     { id: 'data', label: 'Data Sources', icon: Database },
   ];
-
-  const handleExport = () => {
-    const settingsJson = exportSettings();
-    const blob = new Blob([settingsJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'riskguard-settings.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Settings exported successfully', 'Settings have been downloaded as JSON file');
-  };
-
-  const handleImport = () => {
-    if (importSettings(importText)) {
-      setShowImportDialog(false);
-      setImportText('');
-      toast.success('Settings imported successfully', 'Your preferences have been restored');
-    } else {
-      toast.error('Import failed', 'Invalid settings format or corrupted data');
-    }
-  };
 
   const renderAppearanceTab = () => (
     <div className="space-y-6">
@@ -453,31 +427,9 @@ export function SettingsScreen({ isDarkMode }: SettingsScreenProps) {
             isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
           }`}>
             <h3 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Settings Management
+              Settings Management  
             </h3>
             <div className="space-y-2">
-              <button
-                onClick={handleExport}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
-                  isDarkMode
-                    ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                }`}
-              >
-                <Download className="size-4" />
-                Export Settings
-              </button>
-              <button
-                onClick={() => setShowImportDialog(true)}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
-                  isDarkMode
-                    ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                }`}
-              >
-                <Upload className="size-4" />
-                Import Settings
-              </button>
               <button
                 onClick={resetSettings}
                 className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition-colors ${
@@ -506,49 +458,6 @@ export function SettingsScreen({ isDarkMode }: SettingsScreenProps) {
           </div>
         </div>
       </div>
-
-      {/* Import Dialog */}
-      {showImportDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
-          }`}>
-            <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Import Settings
-            </h3>
-            <textarea
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder="Paste your settings JSON here..."
-              className={`w-full h-32 p-3 rounded border text-sm ${
-                isDarkMode
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              }`}
-            />
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleImport}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600 transition-colors"
-              >
-                <Check className="size-4" />
-                Import
-              </button>
-              <button
-                onClick={() => setShowImportDialog(false)}
-                className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                  isDarkMode
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <X className="size-4" />
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
