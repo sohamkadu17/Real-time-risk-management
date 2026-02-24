@@ -8,6 +8,7 @@ import logging
 import threading
 
 from app.core.config import settings
+from app.core.middleware import ErrorHandlerMiddleware, RequestLoggingMiddleware
 from app.auth.router import router as auth_router
 from app.risk.router import router as risk_router
 from app.alerts.router import router as alerts_router
@@ -76,6 +77,10 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan
 )
+
+# Add custom middleware
+app.add_middleware(ErrorHandlerMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 
 # CORS middleware
 app.add_middleware(
