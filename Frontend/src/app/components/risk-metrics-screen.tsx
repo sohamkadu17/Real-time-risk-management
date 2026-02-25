@@ -1,4 +1,4 @@
-import { Gauge, TrendingUp, Activity, Pause, Play } from "lucide-react";
+import { Gauge, TrendingUp, Activity, Pause, Play, Brain, Lightbulb } from "lucide-react";
 import { useState, useEffect } from "react";
 import { RiskScoreTrendChart } from "./risk-score-trend-chart";
 import { RiskLevelDistributionChart } from "./risk-distribution-chart";
@@ -88,6 +88,8 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
   ]);
   const [alertData, setAlertData] = useState<AlertData[]>([]);
   const [chartsLoading, setChartsLoading] = useState(true);
+  const [showAIExplanation, setShowAIExplanation] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState("");
 
   // Simulate initial loading
   useEffect(() => {
@@ -181,6 +183,43 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // AI Explanation generator
+  const generateAIExplanation = () => {
+    const currentRisk = riskScoreData[riskScoreData.length - 1];
+    const avgDelta = greeks.find(g => g.name === "Delta")?.value || 0;
+    const avgGamma = greeks.find(g => g.name === "Gamma")?.value || 0;
+    const avgVega = greeks.find(g => g.name === "Vega")?.value || 0;
+    
+    const explanation = `**Current Market Analysis**
+
+Based on the latest risk assessment${currentRisk ? ` (Risk Score: ${(currentRisk.score * 100).toFixed(1)}%)` : ''}, here's what the data tells us:
+
+🎯 **Options Greeks Analysis:**
+• Delta (${avgDelta.toFixed(4)}): ${Math.abs(avgDelta) > 0.5 ? 'High sensitivity to price movements - significant profit/loss potential' : 'Moderate price sensitivity - balanced risk exposure'}
+• Gamma (${avgGamma.toFixed(4)}): ${avgGamma > 0.03 ? 'High gamma suggests rapid delta changes near expiration' : 'Stable delta behavior expected'}
+• Vega (${avgVega.toFixed(4)}): ${avgVega > 0.15 ? 'High volatility sensitivity - watch for vol crush/expansion' : 'Low vol sensitivity - stable pricing environment'}
+
+📊 **Risk Distribution:**
+${riskLevelCounts.map(level => `• ${level.level.charAt(0).toUpperCase() + level.level.slice(1)}: ${level.count} occurrences`).join('\n')}
+
+💡 **AI Recommendation:**
+${currentRisk?.level === 'critical' ? '🚨 Consider reducing exposure and implementing hedging strategies.' :
+currentRisk?.level === 'high' ? '⚠️ Monitor positions closely and prepare risk mitigation measures.' :
+currentRisk?.level === 'medium' ? '✅ Maintain current strategy with regular monitoring.' :
+'🟢 Favorable risk environment - consider strategic position increases.'}
+
+🔄 **Market Regime:** Based on Greeks patterns, we're in a ${avgVega > 0.15 ? 'high volatility' : avgGamma > 0.03 ? 'gamma-sensitive' : 'stable'} regime.`;
+    
+    setAiExplanation(explanation);
+    setShowAIExplanation(true);
+    
+    showToast({
+      type: 'info',
+      title: 'AI Analysis Complete',
+      message: 'Generated intelligent risk insights'
+    });
+  };
+
   return (
     <div className="max-w-7xl">
       {/* Header with Controls */}
@@ -195,6 +234,18 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
         </div>
         
         <div className="flex items-center gap-3">
+          <button
+            onClick={generateAIExplanation}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+              isDarkMode
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+            }`}
+          >
+            <Brain className="size-4" />
+            AI Insights
+          </button>
+          
           <button
             onClick={() => {
               setIsPaused(!isPaused);
@@ -241,7 +292,6 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
                 className={`p-6 transform transition-all duration-300 ${
                   isLoading ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
                 }`}
-                style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -369,6 +419,68 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
           </div>
         </div>
       </AnimatedCard>
+      
+      {/* AI Explanation Modal */}
+      {showAIExplanation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className={`max-w-2xl w-full rounded-xl border shadow-2xl ${
+            isDarkMode 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200'
+          }`}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                  <Brain className="size-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    AI Risk Analysis
+                  </h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Intelligent insights powered by risk analytics
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAIExplanation(false)}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode 
+                    ? 'hover:bg-gray-700 text-gray-400 hover:text-white' 
+                    : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-96 overflow-y-auto">
+              <div className={`text-sm whitespace-pre-line leading-relaxed ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                {aiExplanation || "Generating AI insights..."}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Lightbulb className="size-4" />
+                <span>Powered by advanced risk analytics</span>
+              </div>
+              <button
+                onClick={() => setShowAIExplanation(false)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isDarkMode
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                    : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+                }`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

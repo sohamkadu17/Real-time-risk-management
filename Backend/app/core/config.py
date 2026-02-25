@@ -28,8 +28,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # Database
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/risk_management"
+    # Database - Using SQLite for development (easier setup)
+    DATABASE_URL: str = "sqlite:///./risk_management.db"
 
     # Redis
     REDIS_HOST: str = "localhost"

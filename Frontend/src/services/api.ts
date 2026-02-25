@@ -37,9 +37,9 @@ export class APIService {
   private baseReconnectDelay = 1000;
   private isReconnecting = false;
   private connectionStatus = "disconnected";
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private heartbeatInterval: number | null = null;
   private lastPongTime = 0;
-  private reconnectTimeoutId: NodeJS.Timeout | null = null;
+  private reconnectTimeoutId: number | null = null;
 
   private constructor() {
     this.initializeEventSystem();
@@ -347,6 +347,51 @@ export class APIService {
       return await response.json();
     } catch (error) {
       console.error(`Failed to fetch risk ${riskId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get AI explanation for a risk assessment
+   */
+  async getAIExplanation(riskId: number): Promise<{
+    risk_id: number;
+    explanation: string;
+    similar_cases: any[];
+  } | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/explain/risk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ risk_id: riskId }),
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error(`Failed to get AI explanation for risk ${riskId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get platform explanation
+   */
+  async getPlatformExplanation(): Promise<{
+    overview: string;
+    key_features: Array<{name: string; description: string}>;
+    risk_models: any[];
+    data_sources: string[];
+    technical_specs: Record<string, any>;
+  } | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/explain/platform`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to get platform explanation:", error);
       return null;
     }
   }

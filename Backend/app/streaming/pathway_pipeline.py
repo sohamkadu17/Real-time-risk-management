@@ -143,7 +143,7 @@ class PathwayPipeline:
         self.errors_count = 0
         logger.info(f"Starting enhanced simulation with {interval}s interval")
         
-        self.simulator.stream_events(
+        self.simulator.stream_live_events(
             interval=interval,
             callback=self.process_event
         )
