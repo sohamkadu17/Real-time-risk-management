@@ -18,8 +18,9 @@ python-multipart==0.0.18
 # Redis (optional)
 redis==5.2.0
 
-# Streaming (Pathway placeholder)
-pathway
+# PATHWAY - REAL-TIME STREAMING FRAMEWORK (REQUIRED FOR HACKATHON!)
+# This is the key dependency - ensures automatic data processing
+pathway>=0.13.0
 
 # Scientific Computing (for Black-76 model)
 numpy>=1.24.0
