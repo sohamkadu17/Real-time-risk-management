@@ -18,17 +18,8 @@ python-multipart==0.0.18
 # Redis (optional)
 redis==5.2.0
 
-# Streaming — Pathway reactive data processing framework
-# ──────────────────────────────────────────────────────
-# Pathway ships pre-built wheels for Linux x86-64 and ARM64.
-# On Windows the app auto-falls back to a threading engine (see
-# app/streaming/pathway_pipeline.py — PathwayPipeline.PATHWAY_AVAILABLE).
-#
-# Linux / Docker install:
-#   pip install "pathway>=0.14.0,<1.0.0"
-#
-# The Dockerfile installs it automatically (see system-dep comments there).
-pathway>=0.14.0,<1.0.0
+# Streaming (Pathway placeholder)
+pathway
 
 # Scientific Computing (for Black-76 model)
 numpy>=1.24.0
