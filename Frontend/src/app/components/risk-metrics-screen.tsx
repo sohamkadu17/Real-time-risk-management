@@ -1,14 +1,17 @@
 import { Gauge, TrendingUp, Activity, Pause, Play, Brain, Lightbulb } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RiskScoreTrendChart } from "./risk-score-trend-chart";
 import { RiskLevelDistributionChart } from "./risk-distribution-chart";
 import { AlertTimelineChart } from "./alert-timeline-chart";
 import { CardSkeleton, ChartSkeleton } from "./ui/loading";
 import { AnimatedCard, MetricCard } from "./ui/animated-card";
 import { useToast } from "./ui/toast";
+import api, { RiskData } from "../../services/api";
 
 interface RiskMetricsScreenProps {
   isDarkMode: boolean;
+  riskData: RiskData[];
+  latestRisk: RiskData | null;
 }
 
 interface GreekMetric {
@@ -19,7 +22,8 @@ interface GreekMetric {
   range: string;
 }
 
-interface RiskData {
+/** Chart data shape (subset of RiskData mapped for the trend line) */
+interface TrendPoint {
   timestamp: string;
   score: number;
   level: string;
@@ -36,7 +40,7 @@ interface AlertData {
   count: number;
 }
 
-export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
+export function RiskMetricsScreen({ isDarkMode, riskData, latestRisk }: RiskMetricsScreenProps) {
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
@@ -79,7 +83,7 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
   ]);
 
   // Chart data states
-  const [riskScoreData, setRiskScoreData] = useState<RiskData[]>([]);
+  const [riskScoreData, setRiskScoreData] = useState<TrendPoint[]>([]);
   const [riskLevelCounts, setRiskLevelCounts] = useState<RiskLevelCount[]>([
     { level: "critical", count: 0 },
     { level: "high", count: 0 },
@@ -106,49 +110,34 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
     return () => clearTimeout(timer);
   }, [showToast]);
 
-  // Update Greeks values
+  // Update Greeks from real Pathway events (Black-76 computed values in features)
+  useEffect(() => {
+    if (isPaused || !latestRisk?.features) return;
+    const f = latestRisk.features;
+    setGreeks(prev => prev.map(greek => {
+      const key = greek.name.toLowerCase();
+      const rawVal = f[key];
+      if (rawVal !== undefined && rawVal !== null) {
+        return { ...greek, value: parseFloat(Number(rawVal).toFixed(4)) };
+      }
+      return greek; // keep previous value if feature not present
+    }));
+  }, [latestRisk, isPaused]);
+
+  // Sync risk score trend from real Pathway data
   useEffect(() => {
     if (isPaused) return;
-
-    const interval = setInterval(() => {
-      setGreeks(prev => prev.map(greek => ({
-        ...greek,
-        value: greek.name === "Theta" 
-          ? parseFloat((greek.value + (Math.random() - 0.5) * 0.01).toFixed(4))
-          : parseFloat((Math.max(0, greek.value + (Math.random() - 0.5) * 0.02)).toFixed(4))
-      })));
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [isPaused]);
-
-  // Generate risk score trend data (simulated from backend)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRiskScoreData(prev => {
-        const newScore = Math.random();
-        const riskLevel = 
-          newScore >= 0.8 ? "critical" :
-          newScore >= 0.6 ? "high" :
-          newScore >= 0.4 ? "medium" :
-          "low";
-
-        const newData = [...prev, {
-          timestamp: new Date().toLocaleTimeString(),
-          score: newScore,
-          level: riskLevel
-        }];
-
-        // Keep only last 50 scores
-        return newData.slice(-50);
-      });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+    const mapped = riskData.map(r => ({
+      timestamp: new Date(r.created_at).toLocaleTimeString(),
+      score: r.risk_score,
+      level: r.risk_level,
+    }));
+    setRiskScoreData(mapped.slice(-50));
+  }, [riskData, isPaused]);
 
   // Update risk level distribution
   useEffect(() => {
+    if (isPaused) return;
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
     
     riskScoreData.forEach(data => {
@@ -161,64 +150,79 @@ export function RiskMetricsScreen({ isDarkMode }: RiskMetricsScreenProps) {
       { level: "medium", count: counts.medium },
       { level: "low", count: counts.low }
     ]);
-  }, [riskScoreData]);
+  }, [riskScoreData, isPaused]);
 
-  // Generate alert timeline data (simulated)
+  // Derive alert timeline from real risk events (bucketed by hour of day)
   useEffect(() => {
-    const generateAlertData = () => {
-      const data: AlertData[] = [];
-      for (let i = 0; i < 24; i++) {
-        data.push({
-          timestamp: `${i}h`,
-          severity: ["critical", "high", "medium", "low"][Math.floor(Math.random() * 4)],
-          count: Math.floor(Math.random() * 10)
-        });
-      }
-      setAlertData(data);
-    };
-
-    generateAlertData();
-    const interval = setInterval(generateAlertData, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // AI Explanation generator
-  const generateAIExplanation = () => {
-    const currentRisk = riskScoreData[riskScoreData.length - 1];
-    const avgDelta = greeks.find(g => g.name === "Delta")?.value || 0;
-    const avgGamma = greeks.find(g => g.name === "Gamma")?.value || 0;
-    const avgVega = greeks.find(g => g.name === "Vega")?.value || 0;
-    
-    const explanation = `**Current Market Analysis**
-
-Based on the latest risk assessment${currentRisk ? ` (Risk Score: ${(currentRisk.score * 100).toFixed(1)}%)` : ''}, here's what the data tells us:
-
-🎯 **Options Greeks Analysis:**
-• Delta (${avgDelta.toFixed(4)}): ${Math.abs(avgDelta) > 0.5 ? 'High sensitivity to price movements - significant profit/loss potential' : 'Moderate price sensitivity - balanced risk exposure'}
-• Gamma (${avgGamma.toFixed(4)}): ${avgGamma > 0.03 ? 'High gamma suggests rapid delta changes near expiration' : 'Stable delta behavior expected'}
-• Vega (${avgVega.toFixed(4)}): ${avgVega > 0.15 ? 'High volatility sensitivity - watch for vol crush/expansion' : 'Low vol sensitivity - stable pricing environment'}
-
-📊 **Risk Distribution:**
-${riskLevelCounts.map(level => `• ${level.level.charAt(0).toUpperCase() + level.level.slice(1)}: ${level.count} occurrences`).join('\n')}
-
-💡 **AI Recommendation:**
-${currentRisk?.level === 'critical' ? '🚨 Consider reducing exposure and implementing hedging strategies.' :
-currentRisk?.level === 'high' ? '⚠️ Monitor positions closely and prepare risk mitigation measures.' :
-currentRisk?.level === 'medium' ? '✅ Maintain current strategy with regular monitoring.' :
-'🟢 Favorable risk environment - consider strategic position increases.'}
-
-🔄 **Market Regime:** Based on Greeks patterns, we're in a ${avgVega > 0.15 ? 'high volatility' : avgGamma > 0.03 ? 'gamma-sensitive' : 'stable'} regime.`;
-    
-    setAiExplanation(explanation);
-    setShowAIExplanation(true);
-    
-    showToast({
-      type: 'info',
-      title: 'AI Analysis Complete',
-      message: 'Generated intelligent risk insights'
+    if (isPaused) return;
+    const buckets: Record<number, number> = {};
+    for (let i = 0; i < 24; i++) buckets[i] = 0;
+    riskData.forEach(r => {
+      const h = new Date(r.created_at).getHours();
+      if (!isNaN(h)) buckets[h] = (buckets[h] || 0) + 1;
     });
-  };
+    setAlertData(
+      Object.entries(buckets).map(([h, count]) => ({
+        timestamp: `${h}h`,
+        severity: count > 5 ? "critical" : count > 2 ? "high" : count > 0 ? "medium" : "low",
+        count,
+      }))
+    );
+  }, [riskData, isPaused]);
+
+  // AI Explanation — calls RAG backend (Gemini-powered with TF-IDF retrieval)
+  const generateAIExplanation = useCallback(async () => {
+    if (!latestRisk?.id) {
+      showToast({ type: 'warning', title: 'No Risk Data', message: 'Waiting for a live Pathway risk event...' });
+      return;
+    }
+
+    setAiExplanation("⏳ Querying RAG engine (Gemini + knowledge base)...");
+    setShowAIExplanation(true);
+
+    const result = await api.getAIExplanation(latestRisk.id);
+
+    if (result?.explanation) {
+      setAiExplanation(result.explanation);
+      showToast({ type: 'success', title: 'AI Analysis Complete', message: 'RAG explanation generated' });
+    } else {
+      // Structured fallback using real data from the Pathway event
+      const avgDelta = greeks.find(g => g.name === "Delta")?.value ?? 0;
+      const avgGamma = greeks.find(g => g.name === "Gamma")?.value ?? 0;
+      const avgVega  = greeks.find(g => g.name === "Vega")?.value  ?? 0;
+      const avgTheta = greeks.find(g => g.name === "Theta")?.value ?? 0;
+      const avgRho   = greeks.find(g => g.name === "Rho")?.value   ?? 0;
+      const f = latestRisk.features ?? {};
+
+      setAiExplanation(
+        `**Risk Assessment — ID #${latestRisk.id}**\n\n` +
+        `🏷️  Entity : ${latestRisk.entity_id} (${latestRisk.entity_type})\n` +
+        `📊  Score  : ${(latestRisk.risk_score * 100).toFixed(1)}%  —  Level: ${latestRisk.risk_level.toUpperCase()}\n` +
+        `🔗  Source : ${latestRisk.source}\n` +
+        `🕐  Time   : ${new Date(latestRisk.created_at).toLocaleString()}\n\n` +
+
+        `🎯 **Black-76 Options Greeks**\n` +
+        `• Δ Delta  ${avgDelta.toFixed(4)}  — ${Math.abs(avgDelta) > 0.5 ? "High directional exposure" : "Balanced exposure"}\n` +
+        `• Γ Gamma  ${avgGamma.toFixed(6)}  — ${avgGamma > 0.03 ? "Rapid delta changes near expiry ⚠️" : "Stable delta"}\n` +
+        `• ν Vega   ${avgVega.toFixed(4)}  — ${avgVega > 0.15 ? "Elevated vol sensitivity — watch IV" : "Stable vol environment"}\n` +
+        `• Θ Theta  ${avgTheta.toFixed(4)}  — Daily time decay\n` +
+        `• ρ Rho    ${avgRho.toFixed(4)}  — Interest rate sensitivity\n` +
+        (f.implied_vol  ? `• IV       ${Number(f.implied_vol).toFixed(2)}  — Implied volatility\n` : "") +
+        (f.option_price ? `• Price    ₹${Number(f.option_price).toFixed(2)}  (${f.option_type ?? "N/A"}, K=${f.strike_price ?? "ATM"})\n` : "") +
+
+        `\n📈 **Risk Factors**\n` +
+        (latestRisk.risk_factors?.length
+          ? latestRisk.risk_factors.map(rf => `• ${rf}`).join("\n")
+          : "• No specific risk factors flagged") +
+
+        `\n\n📊 **Distribution (last ${riskData.length} events)**\n` +
+        riskLevelCounts.map(l => `• ${l.level.padEnd(8)} ${l.count} occurrences`).join("\n") +
+
+        `\n\n⚠️  RAG endpoint unavailable — showing structured template from live Pathway data.`
+      );
+      showToast({ type: 'warning', title: 'RAG Unavailable', message: 'Showing structured template with real data' });
+    }
+  }, [latestRisk, greeks, riskLevelCounts, riskData, showToast]);
 
   return (
     <div className="max-w-7xl">
@@ -235,7 +239,7 @@ currentRisk?.level === 'medium' ? '✅ Maintain current strategy with regular mo
         
         <div className="flex items-center gap-3">
           <button
-            onClick={generateAIExplanation}
+            onClick={() => { void generateAIExplanation(); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
               isDarkMode
                 ? 'bg-purple-600 hover:bg-purple-700 text-white'

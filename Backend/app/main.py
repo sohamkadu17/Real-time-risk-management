@@ -47,13 +47,25 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"✗ Database initialization failed: {e}")
     
-    # Start streaming pipeline in background thread (simulation mode)
+    # Connect WebSocket manager to pipeline for real-time broadcasting
+    pathway_pipeline.set_websocket_manager(websocket_manager)
+    
+    # Hand the *running* asyncio event loop to the pipeline so its daemon
+    # threads can schedule WebSocket coroutines via run_coroutine_threadsafe().
+    # asyncio.get_running_loop() is the only safe, reliable way to obtain the
+    # current event loop from an async context (works in Python 3.7–3.13+).
+    import asyncio as _aio
+    _loop = _aio.get_running_loop()
+    pathway_pipeline.set_event_loop(_loop)
+    
+    # Start streaming pipeline in background thread
     logger.info("Starting streaming pipeline...")
     try:
         pipeline_thread = threading.Thread(
             target=pathway_pipeline.start_simulation,
             args=(3.0,),  # Generate event every 3 seconds
-            daemon=True
+            daemon=True,
+            name="pathway-pipeline",
         )
         pipeline_thread.start()
         logger.info("✓ Streaming pipeline started")
@@ -117,11 +129,17 @@ async def root():
 @app.get(f"{settings.API_PREFIX}/health")
 async def health_check():
     """Health check endpoint"""
+    stats = pathway_pipeline.get_stats()
     return {
         "status": "healthy",
         "database": "connected",
-        "streaming": "active" if pathway_pipeline.is_running else "inactive",
-        "websocket_connections": websocket_manager.get_connection_count()
+        "streaming": {
+            "status": "active" if pathway_pipeline.is_running else "inactive",
+            "engine": stats.get("engine", "unknown"),
+            "events_processed": stats.get("events_processed", 0),
+            "errors": stats.get("errors_count", 0),
+        },
+        "websocket_connections": websocket_manager.get_connection_count(),
     }
 
 
@@ -134,23 +152,26 @@ async def health_check():
 @app.websocket("/ws/risk-stream")
 async def websocket_risk_stream(websocket: WebSocket):
     """
-    WebSocket endpoint for real-time risk updates
-    
-    Clients connect here to receive live risk assessments and alerts
+    WebSocket endpoint for real-time risk updates.
+
+    Clients connect here to receive live risk assessments and alerts.
+    The handler keeps the connection alive by responding to "ping"
+    with "pong" (used by the frontend heartbeat).
     """
     await websocket_manager.connect(websocket)
-    
+
     try:
         while True:
-            # Keep connection alive
             data = await websocket.receive_text()
-            
-            # Echo message (for testing)
-            await websocket_manager.send_personal_message(
-                message=f"Received: {data}",
-                websocket=websocket
-            )
-            
+
+            # Respond to heartbeat pings from the frontend
+            if data.strip().lower() == "ping":
+                await websocket.send_text("pong")
+                continue
+
+            # Echo other messages back (useful for debugging)
+            await websocket.send_text(f"Received: {data}")
+
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
         logger.info("WebSocket client disconnected")

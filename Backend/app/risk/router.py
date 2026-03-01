@@ -9,7 +9,6 @@ from app.risk.models import Risk
 from app.risk.schemas import RiskResponse
 from app.core.dependencies import get_current_user, get_current_active_analyst
 from db.session import get_db
-from typing import Optional as OptionalUser
 import logging
 from datetime import datetime
 
@@ -76,25 +75,6 @@ async def get_live_risks(
         return await get_demo_risks(limit)
 
 
-@router.get("/{risk_id}", response_model=RiskResponse)
-async def get_risk_by_id(
-    risk_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """
-    Get specific risk assessment by ID
-    
-    - **risk_id**: Risk assessment ID
-    """
-    risk = db.query(Risk).filter(Risk.id == risk_id).first()
-    
-    if not risk:
-        raise HTTPException(status_code=404, detail="Risk assessment not found")
-    
-    return risk
-
-
 @router.get("/history", response_model=List[RiskResponse])
 async def get_risk_history(
     entity_id: Optional[str] = None,
@@ -153,3 +133,22 @@ async def get_risk_statistics(
     }
     
     return stats
+
+
+@router.get("/{risk_id}", response_model=RiskResponse)
+async def get_risk_by_id(
+    risk_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get specific risk assessment by ID
+    
+    - **risk_id**: Risk assessment ID
+    """
+    risk = db.query(Risk).filter(Risk.id == risk_id).first()
+    
+    if not risk:
+        raise HTTPException(status_code=404, detail="Risk assessment not found")
+    
+    return risk

@@ -229,7 +229,7 @@ function AppContent() {
       case "market-feed":
         return <MarketFeedScreen isDarkMode={isDark} exchange={exchange} />;
       case "risk-metrics":
-        return <RiskMetricsScreen isDarkMode={isDark} />;
+        return <RiskMetricsScreen isDarkMode={isDark} riskData={riskData} latestRisk={latestRisk} />;
       case "data-source":
         return (
           <DataSourceScreen

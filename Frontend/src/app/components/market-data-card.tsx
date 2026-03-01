@@ -6,19 +6,33 @@ interface MarketDataCardProps {
   isDarkMode: boolean;
   onPriceChange: (price: number) => void;
   exchange: "NSE" | "BSE";
+  /** Live spot price from the Pathway risk event — overrides local simulation when present */
+  liveSpotPrice?: number;
 }
 
 const symbols = ["NIFTY50", "BANKNIFTY"];
 
-export function MarketDataCard({ isDarkMode, onPriceChange, exchange }: MarketDataCardProps) {
+export function MarketDataCard({ isDarkMode, onPriceChange, exchange, liveSpotPrice }: MarketDataCardProps) {
   const [selectedSymbol, setSelectedSymbol] = useState("NIFTY50");
-  const [price, setPrice] = useState(21453.75);
+  const [price, setPrice] = useState(liveSpotPrice ?? 21453.75);
   const [strikePrice, setStrikePrice] = useState(21500);
   const [volatility, setVolatility] = useState(15.32);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [isLive, setIsLive] = useState(false);
 
-  // Simulate real-time price updates
+  // When Pathway sends a real spot_price, use it directly
   useEffect(() => {
+    if (liveSpotPrice !== undefined) {
+      setPrice(liveSpotPrice);
+      setLastUpdate(new Date());
+      setIsLive(true);
+      onPriceChange(liveSpotPrice);
+    }
+  }, [liveSpotPrice, onPriceChange]);
+
+  // Simulate real-time price updates only when no live Pathway data
+  useEffect(() => {
+    if (liveSpotPrice !== undefined) return; // skip simulation when live data present
     const interval = setInterval(() => {
       setPrice(prev => {
         const change = (Math.random() - 0.5) * 50;
@@ -34,7 +48,7 @@ export function MarketDataCard({ isDarkMode, onPriceChange, exchange }: MarketDa
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [onPriceChange]);
+  }, [onPriceChange, liveSpotPrice]);
 
   // Update strike price based on symbol
   useEffect(() => {
@@ -69,6 +83,11 @@ export function MarketDataCard({ isDarkMode, onPriceChange, exchange }: MarketDa
           <h2 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Live Market Data
           </h2>
+          {isLive && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>
+              Pathway Live
+            </span>
+          )}
           <InfoTooltip 
             content="Real-time market prices streaming from NSE for options pricing and risk calculation"
             isDarkMode={isDarkMode}

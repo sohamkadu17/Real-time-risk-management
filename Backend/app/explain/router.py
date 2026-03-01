@@ -8,7 +8,6 @@ from typing import List, Dict, Any
 
 from app.risk.models import Risk
 from app.explain.rag import rag_explainability
-from app.core.dependencies import get_current_user
 from db.session import get_db
 
 router = APIRouter(prefix="/explain", tags=["Explainability"])
@@ -30,7 +29,6 @@ class ExplainRiskResponse(BaseModel):
 async def explain_risk(
     request: ExplainRiskRequest,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
 ):
     """
     Get natural language explanation for a risk assessment
@@ -45,8 +43,8 @@ async def explain_risk(
     if not risk:
         raise HTTPException(status_code=404, detail="Risk assessment not found")
     
-    # Generate explanation using RAG
-    explanation = rag_explainability.explain_risk(
+    # Generate explanation using RAG (Gemini-powered)
+    explanation = await rag_explainability.explain_risk(
         risk_score=risk.risk_score,
         risk_level=risk.risk_level,
         risk_factors=risk.risk_factors or [],

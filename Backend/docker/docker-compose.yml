@@ -34,8 +34,8 @@ services:
   # FastAPI Application
   app:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ..           # build context = Backend/ directory
+      dockerfile: Dockerfile  # Backend/Dockerfile (was wrong: docker/Dockerfile)
     container_name: risk_management_app
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/risk_management
@@ -43,6 +43,9 @@ services:
       REDIS_PORT: 6379
       SECRET_KEY: your-secret-key-change-in-production
       DEBUG: "True"
+      # Pathway auto-activates on Linux — no extra env var needed.
+      # Set GEMINI_API_KEY to enable AI-powered RAG explanations.
+      # GEMINI_API_KEY: your-key-here
     ports:
       - "8000:8000"
     depends_on:

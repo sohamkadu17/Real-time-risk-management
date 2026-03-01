@@ -98,11 +98,21 @@ export class APIService {
             }
 
             // Try to parse as JSON (could be risk update)
-            const data = JSON.parse(event.data);
-            if (data.entity_id && data.risk_score !== undefined) {
-              // It's a risk update
-              if (onRiskUpdate) onRiskUpdate(data);
-              this.emit("risk-update", data);
+            const msg = JSON.parse(event.data);
+
+            // Backend sends: { "type": "risk_update", "data": { ...RiskData } }
+            // Handle both the wrapped format and the legacy flat format.
+            let riskPayload: RiskData | null = null;
+            if (msg.type === "risk_update" && msg.data) {
+              riskPayload = msg.data as RiskData;
+            } else if (msg.entity_id && msg.risk_score !== undefined) {
+              // Legacy flat format (fallback)
+              riskPayload = msg as RiskData;
+            }
+
+            if (riskPayload) {
+              if (onRiskUpdate) onRiskUpdate(riskPayload);
+              this.emit("risk-update", riskPayload);
             }
           } catch (e) {
             // If not JSON, treat as string message

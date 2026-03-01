@@ -1,14 +1,21 @@
 """
-Enhanced market data simulator with realistic financial patterns
-Simulates live NSE/BSE market behavior for testing
+Enhanced market data simulator with realistic financial patterns.
+Simulates live NSE/BSE market behavior for testing.
+
+Used by PathwayPipeline: the pipeline calls generate_event() on each tick
+and pushes the result into the Pathway dataflow graph.
 """
 import random
-import math
 from datetime import datetime, time as dt_time
 from typing import Dict, Any, Optional
 import time
-import asyncio
 import numpy as np
+
+try:
+    from black76_model import Black76Calculator as _Black76Calculator
+    _black76 = _Black76Calculator()
+except Exception:
+    _black76 = None
 
 
 class LiveMarketSimulator:
@@ -74,40 +81,64 @@ class LiveMarketSimulator:
         }
     
     def _calculate_realistic_greeks(self, symbol: str, spot_price: float) -> Dict[str, float]:
-        """Calculate realistic option Greeks for the symbol"""
-        # Generate realistic strike prices around current spot
-        atm_strike = round(spot_price / 50) * 50  # Round to nearest 50
-        time_to_expiry = random.uniform(0.02, 0.25)  # 1 week to 3 months
-        
-        # Realistic volatility based on symbol and market condition
+        """Calculate option Greeks using the Black-76 model (simplified fallback if unavailable)."""
+        atm_strike = max(50.0, round(spot_price / 50) * 50)  # ATM strike — nearest 50 (NSE convention)
+        time_to_expiry = random.uniform(0.02, 0.25)  # 1 week to 3 months in years
+
         base_vol = {
             "NIFTY": 0.15, "BANKNIFTY": 0.18, "RELIANCE": 0.25,
             "TCS": 0.22, "INFY": 0.28, "HDFCBANK": 0.30
         }.get(symbol, 0.25)
-        
         vol_multiplier = {
             "normal": 1.0, "volatile": 2.0, "trending": 1.2,
             "gap_up": 1.5, "gap_down": 1.8, "sideways": 0.8
-        }[self.volatility_regime]
-        
+        }.get(self.volatility_regime, 1.0)
         volatility = base_vol * vol_multiplier
-        
-        # Simplified Greeks calculation based on moneyness
+
+        option_type = random.choice(["call", "put"])
+        risk_free_rate = 0.065  # RBI repo rate ~6.5%
+
+        # ── Black-76 (primary path) ────────────────────────────────────────
+        if _black76 is not None and time_to_expiry > 0 and volatility > 0:
+            try:
+                g = _black76.calculate_all_greeks(
+                    spot_price=spot_price,
+                    strike_price=atm_strike,
+                    time_to_expiry=time_to_expiry,
+                    volatility=volatility,
+                    risk_free_rate=risk_free_rate,
+                    option_type=option_type,
+                )
+                return {
+                    "delta": round(g["delta"], 4),
+                    "gamma": round(g["gamma"], 6),
+                    "theta": round(g["theta"], 4),
+                    "vega":  round(g["vega"],  4),
+                    "rho":   round(g["rho"],   4),
+                    "implied_vol": round(volatility, 4),
+                    "time_to_expiry": round(time_to_expiry, 4),
+                    "option_price": round(g["price"], 2),
+                    "option_type": option_type,
+                    "strike_price": atm_strike,
+                }
+            except Exception:
+                pass  # fall through to simplified model
+
+        # ── Simplified fallback ────────────────────────────────────────────
         moneyness = spot_price / atm_strike
         delta = max(-0.99, min(0.99, 2 * (moneyness - 1)))
-        gamma = max(0.0001, 0.1 * np.exp(-10 * (moneyness - 1)**2))
-        theta = -0.05 * (volatility**2) * (atm_strike / 365)
-        vega = 0.01 * atm_strike * np.sqrt(time_to_expiry) * np.exp(-0.5 * (moneyness - 1)**2)
-        rho = 0.01 * atm_strike * time_to_expiry * max(0, moneyness - 0.5)
-        
+        gamma = max(0.0001, 0.1 * np.exp(-10 * (moneyness - 1) ** 2))
+        theta = -0.05 * (volatility ** 2) * (atm_strike / 365)
+        vega  = 0.01 * atm_strike * np.sqrt(time_to_expiry) * np.exp(-0.5 * (moneyness - 1) ** 2)
+        rho   = 0.01 * atm_strike * time_to_expiry * max(0, moneyness - 0.5)
         return {
             "delta": round(delta, 4),
             "gamma": round(gamma, 6),
             "theta": round(theta, 4),
-            "vega": round(vega, 4),
-            "rho": round(rho, 4),
+            "vega":  round(vega,  4),
+            "rho":   round(rho,   4),
             "implied_vol": round(volatility, 4),
-            "time_to_expiry": round(time_to_expiry, 4)
+            "time_to_expiry": round(time_to_expiry, 4),
         }
     
     def generate_event(self) -> Dict[str, Any]:
@@ -219,20 +250,34 @@ class LiveMarketSimulator:
         interval: float = 0.1, 
         callback=None, 
         max_events: Optional[int] = None,
-        burst_mode: bool = False
+        burst_mode: bool = False,
+        stop_event: Optional["threading.Event"] = None,
     ):
         """
-        Stream events with realistic market timing patterns
-        
+        Stream events with realistic market timing patterns.
+
+        This method is provided for **manual / testing use**.
+        The production Pathway pipeline calls ``generate_event()`` directly
+        and pushes each result into the Pathway dataflow via
+        ``_EventSubject.next()`` — it does NOT use this method.
+
         Args:
-            interval: Base interval between events (seconds)
-            callback: Function to call with each event
-            max_events: Maximum events to generate
-            burst_mode: Enable burst trading simulation (high frequency)
+            interval:    Base interval between events (seconds).
+            callback:    Function to call with each event dict.
+            max_events:  Stop after this many events (None = unlimited).
+            burst_mode:  Enable burst-trading simulation (high frequency).
+            stop_event:  ``threading.Event`` — set it to stop the loop cleanly.
+                         If None, the loop runs until ``max_events`` is reached
+                         or the process exits.  Without this you cannot stop an
+                         unlimited stream from another thread.
         """
+        import threading as _threading
+        if stop_event is None:
+            stop_event = _threading.Event()   # local — caller cannot stop it
+
         events_generated = 0
         
-        while True:
+        while not stop_event.is_set():
             if max_events and events_generated >= max_events:
                 break
             
@@ -246,9 +291,10 @@ class LiveMarketSimulator:
             
             # Burst mode for high-frequency simulation
             if burst_mode and random.random() < 0.2:
-                # Generate burst of events
                 burst_size = random.randint(3, 10)
                 for _ in range(burst_size):
+                    if stop_event.is_set():
+                        break
                     event = self.generate_event()
                     if callback:
                         try:
@@ -265,7 +311,8 @@ class LiveMarketSimulator:
                         print(f"Error in callback: {e}")
                 events_generated += 1
             
-            time.sleep(actual_interval)
+            # Use Event.wait() so stop_event can interrupt the sleep immediately
+            stop_event.wait(actual_interval)
     
     def get_market_summary(self) -> Dict[str, Any]:
         """Get current market state summary"""

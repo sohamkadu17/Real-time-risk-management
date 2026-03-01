@@ -19,9 +19,11 @@ export function RiskMetricCard({ isDarkMode, onDeltaChange, riskData }: RiskMetr
     if (riskData) {
       setRiskScore(riskData.risk_score);
       setRiskLevel(riskData.risk_level);
-      // Use risk score as delta estimation
-      setDelta(riskData.risk_score);
-      onDeltaChange(riskData.risk_score);
+      // Use real Black-76 delta from features if present; fall back to risk_score
+      const realDelta = riskData.features?.delta as number | undefined;
+      const deltaVal = realDelta !== undefined ? realDelta : riskData.risk_score;
+      setDelta(deltaVal);
+      onDeltaChange(deltaVal);
     }
   }, [riskData, onDeltaChange]);
 

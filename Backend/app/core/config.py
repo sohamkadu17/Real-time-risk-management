@@ -35,7 +35,10 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
-    REDIS_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+
+    @property
+    def REDIS_URL(self) -> str:
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
@@ -53,16 +56,13 @@ class Settings(BaseSettings):
     PATHWAY_MONITORING: bool = True
     STREAM_BUFFER_SIZE: int = 1000
 
-    # AI/RAG
-    OPENAI_API_KEY: Optional[str] = None
-    LLM_MODEL: str = "gpt-3.5-turbo"
+    # AI/RAG (Google Gemini - Free API)
+    GEMINI_API_KEY: Optional[str] = None
+    LLM_MODEL: str = "gemini-2.0-flash"
     RAG_ENABLED: bool = False
 
     # Logging
     LOG_LEVEL: str = "INFO"
-
-    # 🔥 THIS IS THE CRITICAL PART (Pydantic v2)
-   
 
 
 settings = Settings()

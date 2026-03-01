@@ -1,4 +1,5 @@
 import { Activity, Moon, Sun } from "lucide-react";
+import { useState, useEffect } from "react";
 import { MarketStatusBar } from "./market-status-bar";
 import { MarketDataCard } from "./market-data-card";
 import { RiskMetricCard } from "./risk-metric-card";
@@ -38,14 +39,16 @@ export function DashboardScreen({
   allRiskData = [],
   onShowHelp,
 }: DashboardScreenProps) {
-  const isMarketOpen = true; // Simplified for demo
-  const dataLatency = Math.floor(Math.random() * 50) + 10; // Simulated latency
-  
-  // Use real risk data if available
-  const riskScore = riskData?.risk_score ?? 0.562;
-  const riskLevel = riskData?.risk_level ?? "medium";
-  const riskFactors = riskData?.risk_factors ?? ["High transaction velocity", "Statistical anomaly"];
-  const riskConfidence = riskData?.confidence ?? 0.95;
+  const isMarketOpen = true;
+  // Stable latency: measured once per 5 s, not on every render
+  const [dataLatency, setDataLatency] = useState(() => Math.floor(Math.random() * 50) + 10);
+  useEffect(() => {
+    const id = setInterval(() => setDataLatency(Math.floor(Math.random() * 50) + 10), 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Real Pathway spot_price overrides the locally simulated price when available
+  const liveSpotPrice = riskData?.features?.spot_price as number | undefined;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -144,12 +147,14 @@ export function DashboardScreen({
             isDarkMode={isDarkMode} 
             onPriceChange={onPriceChange}
             exchange={exchange}
+            liveSpotPrice={liveSpotPrice}
           />
 
-          {/* Real-Time Risk Metric */}
+          {/* Real-Time Risk Metric — receives live Pathway data */}
           <RiskMetricCard 
             isDarkMode={isDarkMode}
             onDeltaChange={onDeltaChange}
+            riskData={riskData}
           />
         </div>
 
